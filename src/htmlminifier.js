@@ -197,6 +197,49 @@
     return !(/^(?:pre|textarea)$/.test(tag));
   }
   
+  function isLocalRessource(tag, name, value) {
+    return ((tag === 'link' && name === 'href') || (tag === 'script' && name === 'src')) 
+            && value.indexOf('http://') !== 0?
+              value :
+              false;
+  }
+  
+  /*
+   * findPath will return the deepest common path to a set of ressources. 
+   * For example, the path to:
+   * - script/jquery.js
+   * - script/jquery.plugin.js
+   * - script/ui/jquery.ui.js
+   * is "script/"
+   */
+  function findPath(ressources, deepestPath) {
+    // Last iteration
+    if(!ressources || !ressources.length) {
+      return deepestPath || '';
+    }
+    // path of the first ressource of the list
+    var path = ressources.shift().match(/(.*?)[^\/]$/)[1],
+        commonPath,
+        i = -1, 
+        len, 
+        dplen,
+        plen = path.length;
+    // First iteration
+    if(!deepestPath) { 
+      commonPath = path; 
+    }
+    else {
+      dplen = deepestPath.length;
+      len = dplen < plen? dplen : plen;
+      while (++i < len && deepestPath[i] == path[i]) {
+        if(path[i] === '/') { commonPath = path.substr(0, i+1); }
+      }
+    }
+    return commonPath? 
+      findPath(ressources, commonPath): 
+      '';
+  }
+  
   function normalizeAttribute(attr, attrs, tag, options) {
     
     var attrName = attr.name.toLowerCase(),
@@ -241,6 +284,8 @@
     
     var results = [ ],
         buffer = [ ],
+        scripts = [ ],
+        styles = [ ],
         currentChars = '',
         currentTag = '',
         lint = options.lint,
@@ -252,22 +297,46 @@
         currentTag = tag;
         currentChars = '';
         
-        buffer.push('<', tag);
+        var attrsBuffer = [ ],
+            localRessource = false,
+            name, value,
+            i = -1, len = attrs.length;
         
         lint && lint.testElement(tag);
         
-        for ( var i = 0, len = attrs.length; i < len; i++ ) {
-          lint && lint.testAttribute(tag, attrs[i].name.toLowerCase(), attrs[i].escaped);
-          buffer.push(normalizeAttribute(attrs[i], attrs, tag, options));
+        while ( ++i < len) {
+          name = attrs[i].name.toLowerCase();
+          value = attrs[i].escaped;
+          lint && lint.testAttribute(tag, name, value);
+          if (options.minifyLocalRessources && !localRessource) {
+            localRessource = isLocalRessource(tag, name, value);
+          }
+          attrsBuffer.push(normalizeAttribute(attrs[i], attrs, tag, options));
         }
-        
-        buffer.push('>');
+        if (options.minifyLocalRessources && localRessource) {
+          tag === 'script'? scripts.push(localRessource) : styles.push(localRessource);
+        }
+        else {
+          buffer.push('<', tag, attrsBuffer.join(''), '>');
+        }
       },
       end: function( tag ) {
         var isElementEmpty = currentChars === '' && tag === currentTag;
+        // insert minified local ressources when closing head or body
+        if (options.minifyLocalRessources) {
+          if (tag === 'head' && styles.length) {
+            buffer.push('<link rel="stylesheet" type="text/css" href="'+findPath(styles)+'style.all.css"/>');
+          }
+          else if (tag === 'body' && scripts.length) {
+            buffer.push('<script type="text/javascript" src="'+findPath(scripts)+'script.all.js"></script>');
+          }
+        }
         if ((options.removeEmptyElements && isElementEmpty && canRemoveElement(tag))) {
           // remove last "element" from buffer, return
           buffer.splice(buffer.lastIndexOf('<'));
+          return;
+        }
+        else if (options.minifyLocalRessources && isElementEmpty && tag === 'script' ) {
           return;
         }
         else if (options.removeOptionalTags && isOptionalTag(tag)) {

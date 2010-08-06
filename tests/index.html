@@ -549,6 +549,35 @@
           equals(minify(input, { removeOptionalTags: true }), output);
         });
         
+        test('minifying local ressources', function() {
+          input = '<html>'+
+                    '<head>'+
+                      '<link rel="stylesheet" href="style/oocss/content.css" />'+
+                      '<meta name="keywords" content="minifier">'+
+                      '<link rel="stylesheet" href="style/oocss/template.css" />'+
+                      '<link rel="stylesheet" href="style/index.css" />'+
+                    '</head>'+
+                    '<body>'+
+                      '<script type="text/javascript" src="script/jquery.js"><\/script>'+
+                      '<div>dummy element</div>'+
+                      '<script type="text/javascript" src="script/jquery.plugin.js"><\/script>'+
+                      '<script type="text/javascript" src="script/ui/jqueryui.js"><\/script>'+
+                    '</body>'+
+                  '</html>';
+                  
+          output = '<html>'+
+                    '<head>'+
+                      '<meta name="keywords" content="minifier">'+
+                      '<link rel="stylesheet" type="text/css" href="style/style.all.css"/>'+
+                    '</head>'+
+                    '<body>'+
+                      '<div>dummy element</div>'+
+                      '<script type="text/javascript" src="script/script.all.js"><\/script>'+
+                    '</body>'+
+                  '</html>';
+          equals(minify(input, { minifyLocalRessources: true }), output);
+        });
+        
       })(this);
     </script>
   </body>
