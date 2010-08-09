@@ -286,6 +286,8 @@
         buffer = [ ],
         scripts = [ ],
         styles = [ ],
+        scriptsPath,
+        stylesPath,
         currentChars = '',
         currentTag = '',
         lint = options.lint,
@@ -325,10 +327,12 @@
         // insert minified local ressources when closing head or body
         if (options.minifyLocalRessources) {
           if (tag === 'head' && styles.length) {
-            buffer.push('<link rel="stylesheet" type="text/css" href="'+findPath(styles)+'style.all.css"/>');
+            stylesPath = findPath(styles);
+            buffer.push('<link rel="stylesheet" type="text/css" href="'+stylesPath+'style.all.css"/>');
           }
           else if (tag === 'body' && scripts.length) {
-            buffer.push('<script type="text/javascript" src="'+findPath(scripts)+'script.all.js"></script>');
+            scriptsPath = findPath(scripts);
+            buffer.push('<script type="text/javascript" src="'+scriptsPath+'script.all.js"></script>');
           }
         }
         if ((options.removeEmptyElements && isElementEmpty && canRemoveElement(tag))) {
@@ -395,7 +399,16 @@
     results.push.apply(results, buffer)    
     var str = results.join('');
     log('minified in: ' + (new Date() - t) + 'ms');
-    return str;
+    return options.minifyLocalRessources?
+      {
+        str: str,
+        scripts: scripts,
+        styles: styles,
+        scriptsPath: scriptsPath,
+        stylesPath: stylesPath,
+        valueOf: function() { return this.str; }
+      }:
+      str;
   }
   
   // export
