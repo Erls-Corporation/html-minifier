@@ -156,7 +156,7 @@ function minifyCSS(css) {
   
   // restore preserved comments and strings
   css = css.replace(/___YUICSSMIN_PRESERVED_TOKEN_(\d+)___/g, function(str, i) {
-    return tokens[+i];
+    return '"'+tokens[+i]+'"';
   });
 
   // Trim the final string (for any leading or trailing white spaces)
