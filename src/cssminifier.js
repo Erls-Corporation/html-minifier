@@ -33,7 +33,7 @@ function minifyCSS(css) {
   // Collect all comment blocks
   // keep empty comments after child selectors (IE7 hack)
   // e.g. html >/**/ body
-  css = css.replace(/(^|.)\/*(.*?)*\//g, function(str, previousChar, content) {
+  css = css.replace(/(^|.)\/\*(.*?)\*\//g, function(str, previousChar, content) {
     comments.push(content);
     return previousChar == '>' && content == ''?
       str:
@@ -90,7 +90,7 @@ function minifyCSS(css) {
   css = css.replace(/((?:^|})[^{]*?):([^}]*?(?:{|$))/, '$1___YUICSSMIN_PSEUDOCLASSCOLON___$2');
   
   // Remove spaces before the things that should not have spaces before them.
-  css = css.replaceAll(/ ([!{};:>+\(\)\],])/, '$1');
+  css = css.replace(/ ([!{};:>+\(\)\],])/g, '$1');
   // bring back the colon
   css = css.split("___YUICSSMIN_PSEUDOCLASSCOLON___").join(':');
   
@@ -128,7 +128,7 @@ function minifyCSS(css) {
   css = css.replace(/background-position:0(?=;|})/gi, "background-position:0 0");
 
   // Replace 0.6 to .6, but only when preceded by : or a white-space
-  css = css.replaceAll(/([: ])0+(?=\.\d+)/g, "$1");
+  css = css.replace(/([: ])0+(?=\.\d+)/g, "$1");
   
   // Shorten colors from rgb(51,102,153) to #336699
   // This makes it more likely that it'll get further compressed in the next step.
@@ -163,7 +163,7 @@ function minifyCSS(css) {
   return css.replace(/^\s\s*/, '').replace(/\s\s*$/, '');  
   
   function minifyOpacity(str) {
-    return str.replace(/progid:DXImageTransform.Microsoft.Alpha\\(Opacity=/gi, "alpha(opacity=");
+    return str.replace(/progid:DXImageTransform.Microsoft.Alpha\(Opacity=/gi, "alpha(opacity=");
   }
   
   function toHex(color) {
@@ -173,6 +173,6 @@ function minifyCSS(css) {
 }
 
 // export
-global.minify = minify;
+global.minifyCSS = minifyCSS;
 
 })(this);

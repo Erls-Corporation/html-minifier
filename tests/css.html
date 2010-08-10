@@ -1,0 +1,38 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+  "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+    <title></title>
+    <link rel="stylesheet" href="qunit.css" type="text/css">
+    <script type="text/javascript" src="qunit.js"></script>
+    <script type="text/javascript" src="../src/cssminifier.js"></script>
+  </head>
+  <body>
+    
+    <h1 id="qunit-header">CSS Minifier</h1>
+    <h2 id="qunit-banner"></h2>
+    <h2 id="qunit-userAgent"></h2>
+    <ol id="qunit-tests"></ol>
+    
+    <script type="text/javascript">
+      
+      (function(global){
+        
+        var minify = global.minifyCSS, input, output;
+        
+        test('`minifiy` exists', function() {
+          ok(minify);
+        });
+        
+        test('background-position.css', function() {
+          input = "a {background-position: 0 0 0 0;}"+
+                  "b {BACKGROUND-POSITION: 0 0;}"
+          output = "a{background-position:0 0}b{background-position:0 0}"
+          
+          equals(minify(input), output);
+        })
+      })(this);
+    </script>
+  </body>
+</html>
