@@ -20,20 +20,29 @@ function minifyCSS(css) {
       commentsLen = 0,
       tokens = [],
       tokensLen = 0,
-      charset = '';
+      charset = '',
+      newLine = '\n',
+      nextComment;
       
   // Concatenate multiple files
   if(css instanceof Array) {
-    css.join(' ');
+    css = css.join(' ');
   }
   
-  // Normalize all whitespace strings to single spaces. Easier to work with that way.
-  css = css.replace(/\s+/g, ' ');
+  if (css.indexOf('\n\r') != -1) {
+    newLine = '\n\r';
+  }
+  else if (css.indexOf('\r\n') != -1) {
+    newLine = '\r\n';
+  }
+  
+  // remove all newline temporarily
+  css = css.split(newLine).join('\uffff');
   
   // Collect all comment blocks
   // keep empty comments after child selectors (IE7 hack)
   // e.g. html >/**/ body
-  css = css.replace(/(^|.)\/\*(.*?)\*\//g, function(str, previousChar, content) {
+  css = css.replace(/(^|.|\uffff)\/\*(.*?)\*\//g, function(str, previousChar, content) {
     comments.push(content);
     return previousChar == '>' && content == ''?
       str:
@@ -41,16 +50,14 @@ function minifyCSS(css) {
   });
   
   // Preserve strings so their content doesn't get accidentally minified
-  css = css.replace(/(["'])(.*?[^\\])\1/g, function(str, quote, content, alt) {
-    if (content === undefined) { content = alt; }
-    
+  css = css.replace(/(["'])(.*?[^\\])\1/g, function(str, quote, content) {
     // maybe the string contains comment-like substring?
     content = content.replace(/___YUICSSMIN_PRESERVE_CANDIDATE_COMMENT_(\d+)___/g, function(str, i) {
-      return comments[+i];
+      return '/*'+comments[+i]+'*/';
     });
     
     // minify alpha opacity in filter strings
-    tokens.push(minifyOpacity(content));
+    tokens.push(minifyOpacity(quote+content+quote));
     return "___YUICSSMIN_PRESERVED_TOKEN_" + (tokensLen++) + "___";
   });
   
@@ -58,36 +65,36 @@ function minifyCSS(css) {
   css = css.replace(/___YUICSSMIN_PRESERVE_CANDIDATE_COMMENT_(\d+)___/g, function(str, i) {
     var comment = comments[+i];
     
+    if (nextComment) {
+      nextComment = false;
+      return '/**/';
+    }
     // ! in the first position of the comment means preserve
-    // so push to the preserved tokens while stripping the !
-    if (comment[0] == '!') {      
-      tokens.push(
-        '/*'+ 
-        comment
-          // remove '!'
-          .substr(1)
-          // try to put '\n' back in place
-          .split(' * ').join('\n * ')+
-        '\n */'
-      );
-      return "___YUICSSMIN_PRESERVED_TOKEN_" + (tokensLen++) + "___";
+    // so push to the preserved tokens while keeping the !
+    else if (comment[0] == '!') {
+      tokens.push(comment);
+      return "/*___YUICSSMIN_PRESERVED_TOKEN_" + (tokensLen++) + "___*/";
     }
     
     // \ in the last position looks like hack for Mac/IE5
     // shorten that to /*\*/ and the next one to /**/
-    else if (i > 0 && comments[i-1].substr(-1) == '\\') {
-      comments[i-1] = '\\';
-      return '/**/';
+    else if (comment.substr(-1) == '\\') {
+      nextComment = true;
+      return '/*\\*/';
     }
     
     // in all other cases kill the comment
     return '';
   });
   
+  // Normalize all whitespace strings to single spaces. Easier to work with that way.
+  css = css.split('\uffff').join(' ');
+  css = css.replace(/\s+/g, " ");
+  
   // Remove the spaces before the things that should not have spaces before them.
   // But, be careful not to turn "p :link {...}" into "p:link{...}"
   // Swap out any pseudo-class colons with the token, and then swap back.
-  css = css.replace(/((?:^|})[^{]*?):([^}]*?(?:{|$))/, '$1___YUICSSMIN_PSEUDOCLASSCOLON___$2');
+  css = css.replace(/((?:^|}|\uffff)[^{]*?):([^}]*?(?:{|$))/, '$1___YUICSSMIN_PSEUDOCLASSCOLON___$2');
   
   // Remove spaces before the things that should not have spaces before them.
   css = css.replace(/ ([!{};:>+\(\)\],])/g, '$1');
@@ -97,11 +104,8 @@ function minifyCSS(css) {
   // retain space for special IE6 cases
   css = css.replace(/:first-(line|letter)(?={|,)/g, ":first-$1 ");
   
-  // no space after the end of a preserved comment
-  //css = css.replaceAll("\\*/ ", "*/");
-  
   // If there is a @charset, then only allow one, and push to the top of the file.
-  css = css.replace(/@charset ".*?";/g, function(str) {
+  css = css.replace(/@charset .*?;/g, function(str) {
     if (!charset) {
       charset = str;
     }
@@ -114,7 +118,7 @@ function minifyCSS(css) {
   css = css.replace(/\band\(/g, "and (");
 
   // Remove the spaces after the things that should not have spaces after them.
-  css = css.replace(/([!{}:;>+\(\[,]) /g, '$1');
+  css = css.replace(/([!}{:;>+\([,]) +/g, '$1');
 
   // remove unnecessary semicolons
   css = css.replace(/;+}/g, '}');
@@ -146,18 +150,22 @@ function minifyCSS(css) {
   
   // shorter opacity IE filter
   css = minifyOpacity(css);
-
+  
   // Remove empty rules.
   css = css.replace(/[^}{\/;]+\{\}/g, '');
   
   // Replace multiple semi-colons in a row by a single one
   // See SF bug #1980989
-  css = css.replace(/;+/g, ';');
+  css = css.replace(/;+ */g, ';');
   
   // restore preserved comments and strings
   css = css.replace(/___YUICSSMIN_PRESERVED_TOKEN_(\d+)___/g, function(str, i) {
-    return '"'+tokens[+i]+'"';
+    return tokens[+i].split('\uffff').join('\n');
   });
+  
+  // no space after the end of a preserved comment
+  css = css.split("*/ ").join("*/");
+  console.log(css)
 
   // Trim the final string (for any leading or trailing white spaces)
   return css.replace(/^\s\s*/, '').replace(/\s\s*$/, '');  
