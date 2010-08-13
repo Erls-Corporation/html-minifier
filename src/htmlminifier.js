@@ -29,6 +29,14 @@
     };
   }
   
+  function switchToProduction(text) {
+    return text
+      // uncomment production only code
+      .replace(/<!--\[if production\]>((?:.|\s)*?)<!\[endif\]-->/g, "$1")
+      // remove development code
+      .replace(/<!--\[if development\]><!-->((?:.|\s)*?)<!--<!\[endif\]-->/g, '');
+  }
+  
   function collapseWhitespace(str) {
     return str.replace(/\s+/g, ' ');
   }
@@ -199,7 +207,7 @@
   
   function isLocalRessource(tag, name, value) {
     return ((tag === 'link' && name === 'href') || (tag === 'script' && name === 'src')) 
-            && value.indexOf('http://') !== 0?
+            && value.indexOf('http://') !== 0 && !/[?&]noconcat=true(&|$)/.test(value)?
               value :
               false;
   }
@@ -280,6 +288,11 @@
   function minify(value, options) {
     
     options = options || { };
+    
+    if (options.productionMode) {
+      value = switchToProduction(value);
+    }
+    
     value = trimWhitespace(value);
     
     var results = [ ],
@@ -290,8 +303,9 @@
         stylesPath,
         currentChars = '',
         currentTag = '',
+        removeTag,
         lint = options.lint,
-        t = new Date()
+        t = new Date();
     
     HTMLParser(value, {
       start: function( tag, attrs, unary ) {
@@ -316,7 +330,13 @@
           attrsBuffer.push(normalizeAttribute(attrs[i], attrs, tag, options));
         }
         if (options.minifyLocalRessources && localRessource) {
-          tag === 'script'? scripts.push(localRessource) : styles.push(localRessource);
+          if (tag === 'script') {
+            scripts.push(localRessource);
+            removeTag = true;
+          }
+          else {
+            styles.push(localRessource);
+          }
         }
         else {
           buffer.push('<', tag, attrsBuffer.join(''), '>');
@@ -324,8 +344,12 @@
       },
       end: function( tag ) {
         var isElementEmpty = currentChars === '' && tag === currentTag;
+        if (removeTag) {
+          removeTag = false;
+          return;
+        }
         // insert minified local ressources when closing head or body
-        if (options.minifyLocalRessources) {
+        else if (options.minifyLocalRessources) {
           if (tag === 'head' && styles.length) {
             stylesPath = findPath(styles);
             buffer.push('<link rel="stylesheet" type="text/css" href="'+stylesPath+'style.all.css"/>');
@@ -338,9 +362,6 @@
         if ((options.removeEmptyElements && isElementEmpty && canRemoveElement(tag))) {
           // remove last "element" from buffer, return
           buffer.splice(buffer.lastIndexOf('<'));
-          return;
-        }
-        else if (options.minifyLocalRessources && isElementEmpty && tag === 'script' ) {
           return;
         }
         else if (options.removeOptionalTags && isOptionalTag(tag)) {
@@ -401,12 +422,11 @@
     log('minified in: ' + (new Date() - t) + 'ms');
     return options.minifyLocalRessources?
       {
-        str: str,
+        html: str,
         scripts: scripts,
         styles: styles,
         scriptsPath: scriptsPath,
-        stylesPath: stylesPath,
-        valueOf: function() { return this.str; }
+        stylesPath: stylesPath
       }:
       str;
   }

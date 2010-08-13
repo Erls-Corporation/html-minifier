@@ -575,7 +575,65 @@
                       '<script type="text/javascript" src="script/script.all.js"><\/script>'+
                     '</body>'+
                   '</html>';
-          equals(minify(input, { minifyLocalRessources: true }), output);
+          equals(minify(input, { minifyLocalRessources: true }).html, output);
+        });
+        
+        test('not minifying some local ressources', function() {
+          input = '<html>'+
+                    '<head>'+
+                      '<link rel="stylesheet" href="style/oocss/content.css" />'+
+                      '<meta name="keywords" content="minifier">'+
+                      '<link rel="stylesheet" href="style/oocss/template.css?noconcat=true&a=b" />'+
+                      '<link rel="stylesheet" href="style/index.css" />'+
+                    '</head>'+
+                    '<body>'+
+                      '<script type="text/javascript" src="script/jquery.js?a=b&noconcat=true"><\/script>'+
+                      '<div>dummy element</div>'+
+                      '<script type="text/javascript" src="script/jquery.plugin.js"><\/script>'+
+                      '<script type="text/javascript" src="script/ui/jqueryui.js"><\/script>'+
+                    '</body>'+
+                  '</html>';
+                  
+          output = '<html>'+
+                    '<head>'+
+                      '<meta name="keywords" content="minifier">'+
+                      '<link rel="stylesheet" href="style/oocss/template.css?noconcat=true&a=b">'+
+                      '<link rel="stylesheet" type="text/css" href="style/style.all.css"/>'+
+                    '</head>'+
+                    '<body>'+
+                      '<script type="text/javascript" src="script/jquery.js?a=b&noconcat=true"><\/script>'+
+                      '<div>dummy element</div>'+
+                      '<script type="text/javascript" src="script/script.all.js"><\/script>'+
+                    '</body>'+
+                  '</html>';
+          equals(minify(input, { minifyLocalRessources: true }).html, output);
+        });
+        
+        test('Switching from development to production', function() {
+          input = '<html>'+
+                    '<head>'+
+                      '<meta name="keywords" content="minifier">'+
+                      '<!--[if production]>\n<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.4/themes/base/jquery.ui.all.css" />\n<![endif]-->'+
+                      '<!--[if development]><!-->\n<link rel="stylesheet" href="ui/themes/base/jquery.ui.all.css" />\n<!--<![endif]-->'+
+                    '</head>'+
+                    '<body>'+
+                      '<div>dummy element</div>'+
+                      '<!--[if production]><script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"><\/script><![endif]-->'+
+                      '<!--[if development]><!--><script type="text/javascript" src="script/jquery.js"><\/script><!--<![endif]-->'+
+                    '</body>'+
+                  '</html>';
+                  
+          output = '<html>'+
+                    '<head>'+
+                      '<meta name="keywords" content="minifier">'+
+                      '\n<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.4/themes/base/jquery.ui.all.css">\n'+
+                    '</head>'+
+                    '<body>'+
+                      '<div>dummy element</div>'+
+                      '<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"><\/script>'+
+                    '</body>'+
+                  '</html>';
+          equals(minify(input, { productionMode: true }), output);
         });
         
       })(this);
