@@ -225,6 +225,8 @@
     if(!ressources || !ressources.length) {
       return deepestPath || '';
     }
+    // clone this array before manipulating it. 
+    ressources = ressources.join('\uffff').split('\uffff');
     // path of the first ressource of the list
     var path = ressources.shift().match(/(.*?)[^\/]$/)[1],
         commonPath,
@@ -324,12 +326,12 @@
           name = attrs[i].name.toLowerCase();
           value = attrs[i].escaped;
           lint && lint.testAttribute(tag, name, value);
-          if (options.minifyLocalRessources && !localRessource) {
+          if (options.collectLocalRessources && !localRessource) {
             localRessource = isLocalRessource(tag, name, value);
           }
           attrsBuffer.push(normalizeAttribute(attrs[i], attrs, tag, options));
         }
-        if (options.minifyLocalRessources && localRessource) {
+        if (options.collectLocalRessources && localRessource) {
           if (tag === 'script') {
             scripts.push(localRessource);
             removeTag = true;
@@ -349,7 +351,7 @@
           return;
         }
         // insert minified local ressources when closing head or body
-        else if (options.minifyLocalRessources) {
+        else if (options.collectLocalRessources) {
           if (tag === 'head' && styles.length) {
             stylesPath = findPath(styles);
             buffer.push('<link rel="stylesheet" type="text/css" href="'+stylesPath+'style.all.css"/>');
@@ -415,12 +417,12 @@
       doctype: function(doctype) {
         buffer.push(options.useShortDoctype ? '<!DOCTYPE html>' : collapseWhitespace(doctype));
       }
-    });  
+    });
     
     results.push.apply(results, buffer)    
     var str = results.join('');
     log('minified in: ' + (new Date() - t) + 'ms');
-    return options.minifyLocalRessources?
+    return options.collectLocalRessources?
       {
         html: str,
         scripts: scripts,

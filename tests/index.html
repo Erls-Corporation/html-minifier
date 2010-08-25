@@ -549,7 +549,7 @@
           equals(minify(input, { removeOptionalTags: true }), output);
         });
         
-        test('minifying local ressources', function() {
+        test('collect local ressources', function() {
           input = '<html>'+
                     '<head>'+
                       '<link rel="stylesheet" href="style/oocss/content.css" />'+
@@ -575,10 +575,10 @@
                       '<script type="text/javascript" src="script/script.all.js"><\/script>'+
                     '</body>'+
                   '</html>';
-          equals(minify(input, { minifyLocalRessources: true }).html, output);
+          equals(minify(input, { collectLocalRessources: true }).html, output);
         });
         
-        test('not minifying some local ressources', function() {
+        test('omitting some local ressources', function() {
           input = '<html>'+
                     '<head>'+
                       '<link rel="stylesheet" href="style/oocss/content.css" />'+
