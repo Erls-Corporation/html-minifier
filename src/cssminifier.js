@@ -15,7 +15,7 @@
 (function(global){
   
 
-function minifyCSS(css) {
+function minify(css) {
   var comments = [],
       commentsLen = 0,
       tokens = [],
