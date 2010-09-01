@@ -165,7 +165,6 @@ function minify(css) {
   
   // no space after the end of a preserved comment
   css = css.split("*/ ").join("*/");
-  console.log(css)
 
   // Trim the final string (for any leading or trailing white spaces)
   return css.replace(/^\s\s*/, '').replace(/\s\s*$/, '');  
@@ -181,6 +180,6 @@ function minify(css) {
 }
 
 // export
-global.minifyCSS = minifyCSS;
+global.minify = minify;
 
 })(this);
